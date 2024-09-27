@@ -1,0 +1,398 @@
+### 허진수
+##### 파이썬 기본적인 것
+
+1.hist: 히스토램을 그리기 위해 사용
+특정 객체의 특정 열의 hist, bin 은 구역의 수
+```“
+ratings.rating.hist(bin= 5)
+”```
+rating을 x 좌표로 각 x좌표의 개수들을 y좌표로
+
+2. “`pd.set_option('display.max_columns', None)`”
+ex ) column이 너무 많을 때 생략하는 경우가 있지만 위와같이하면 생략없이 보여줌
+
+3. “`reviews_per_book = ratings.groupby('book_id').book_id.apply(lambda x: len(x))`”
+groupby로 묶어줄 수 있고 apply와 lamda를 통해 함수 적용 가능.
+
+4. describe() 함수를 사용해 통계값을 볼 수 있다.
+
+5. “`reviews_per_book.sort_values(ascending=False).head(10)`”
+sort_values를 통해 정렬할 수 있다.
+
+5.1 “`top_rated = books.sort_values('average_rating', ascending=False)
+tf_top_rated = top_rated[:25] #indexing`”
+
+위과 같은 방법으로도 가능 indexing 까지
+
+6. “`book_tags=book_tags.merge(books[['goodreads_book_id','title']],on='goodreads_book_id')`”
+
+merge 함수를 통해 두객체를 병합할 수 있다. 이때 대괄호 안에 특정 열만 써 병합할 수 있고 on 에는 무엇을 기준으로 병할 할 지 쓴다.
+
+7. “`book_tags.loc[book_tags['count']< 0, 'count'] = 0`”
+describe할 때 뜨는 count 값을 위와같이 조정할 수 있다.
+
+8. “`book_tags.sample(10, weights = 'count') # popular -> weights='count'`”를 사용하면 count 열의 값이 큰 행일수록 더 자주 선택될 가능성이 높아집니다. 이 말은 샘플이 고르게 분포되기보다는 count 값이 큰 데이터에 더 집중되어 선택된다는 의미입니다.
+
+9. 그리기 
+“```
+import matplotlib.pyplot as plt
+import seaborn as sns
+```”
+
+1) Figure 크기 설정
+“`plt.figure(figsize=(15, 7))`”
+
+2) Seaborn으로 수평 막대 그래프 그리기
+“`sns.barplot(x="average_rating",y="original_title", data=tf_top_rated, palette="viridis")`”
+
+3) 그래프 제목 설정
+“`plt.title('Top Rated Books and Their Ratings', fontsize=16)`”
+
+4) x축, y축 라벨 설정
+“`plt.xlabel('Average Rating', fontsize=14)`”
+“`plt.ylabel('Book Title', fontsize=14)`“
+
+5) x축 값 범위 설정 (선택사항)
+”`plt.xlim(0, 5)`“  
+> 예시로 평균 평점 범위를 0에서 5까지 설정
+
+6)) y축 라벨 회전 (필요한 경우)
+”`plt.yticks(rotation=0, fontsize=12)`“
+
+7) 그래프 표시
+”`plt.show()`“
+
+10. 많은 단어뜨게 하기 
+”```
+from wordcloud import WordCloud, STOPWORDS
+
+def wordcloud(string):
+    stopwords = set(STOPWORDS); 
+    wc = WordCloud(width=800, height=500, mask=None, random_state=21,
+                   max_font_size=110,stopwords=stopwords).generate(string)
+    fig=plt.figure(figsize=(16,8))
+    plt.axis('off')
+    plt.imshow(wc)
+```“
+
+11. join
+”```
+author_string = " ".join(books['authors'])
+title_string = " ".join([str(book_name) for book_name in books['original_title']])
+```“
+
+
+##### DNN (심층 신경망)
+
+1. 활성화 함수 종류
+
+1) sigmoid 함수
+- [0, 1] 사이의 값 출력
+- 역전파 중에 기울기가 0에 가까워지는 문제가 있음
+기울기가 0에 가까워지면 학습이 느려진다.
+
+2) Tanh 함수
+- [-1, 1] 사이의 값을 가짐
+- 일정 값이 상 커질시 미분값이 소실되는 Gradient vanishing문제가 여전함(위와 동일)
+
+3) ReLU 함수
+- 음수면 0 양수면, 입력값 그대로 출력
+- Gradient vanishing 문제 해결
+- 단 입력값이 음수인 경우 업데이트가 안됨
+softmax 활성화 함수
+- 심층 신경망의 결과를 확률 벡터로 바꿔주는 역할
+- 모두 양수이며 합은 1
+가중치 초기화
+- 적절히 초기화 시 Gradient vanishing 문제 해결 가능
+편향 초기화
+- 보통 0으로 초기화
+
+
+2.가중치 초기화 방법론
+
+1) Xavier initialization
+sigmoid, Tahn 함수를 위한 가중치 초기화
+모든 층에 동일한 표준편차를 적용하지 않음
+입력/출력 노드 수를 이용한 정규분포 이용
+Vanshing Gradient 문제 최소화
+
+
+
+
+2) He Initialization
+ReLu 함수를 위한 가중치 초기화
+Xavier의 변형으로 입력 노드 수 이용
+Relu 특성상 가중치의 초기값이 더 커야 한다는 점 반영
+활성화 영역을 2배 넓게 분포시킴
+
+
+Batch Epoch
+데이터 셋 내의 모든 데이터를 한번에 학습 불가
+데이터 셋을 작은 덩어리(mini-batch)로 나눠서 처리
+epoch은 전체 데이터 셋 순회를 완료한 횟수
+epoch이 크면 overfitting 문제 작으면 underfitting 문제가 있을 수 있음
+
+Batch Normalization
+배치 정규화는 Activation에 입력되는 값을 일정하게 유지
+입력 값인 x를 통해 출력을 유지할 수 있도록 x의 분포를 가우시안 분포로 변환
+
+3. Optimizer
+손실 함수의 최적점에 도달하게 하는 가중치와 편향을 찾는 작업
+
+방법
+sgd, mometum, nag, nadam 등등
+
+사용법
+torch.optim.SGD
+torch.optim.Adam(많이 사용)
+등등
+early stopping 
+과적합을 방지하기 위해 검증/평가 데이터셋의 학습 곡선을 보며 모델의 학습을 조기에 중단하는 것
+
+Dropout
+각 계층에서 연결선이 너무많으면 학습 데이터에 대한 계산이 정확해 overfitting 문제가 발생
+
+Drop out은 정규화 방법으로 연결선의 일부를 지워 과도하게 미세한 계산을 피하는 방법
+무작위 연결선을 지우기 때문에 앙상블 효과가 있음
+model.train() : Dropout 실행
+model.eval(): Dropout 실행 x
+
+### 심목영
+##### CNN(합성곱 신경망)
+
+1. computer vision은 시각 데이터를 처리할 수 있도록 하는 것
+대표적으로는 image classification, object Detection, Semantic Segmentation, Instance Segmentation
+- image classification 란 주어진 이미지를 사전에 정의된 클래스 중 하나로 분류하는 작업
+- object detection $ localiztion 은 이미지 내에서 객체의 존재 여부를 감지하고, 각 객체의 위치를 바운딩 박스 형태로 예측하는 작업
+- semantic segmentation은 각 픽셀을 특정 클래스에 할당하는 직업 ex) 모든 고양이 픽셀은 같은 클래스로 분류
+- instance segmentation은 같은 클래스 내에서도 개별 객체를 구분하여 각각의 객체를 인스턴스로 분리하는 작업 ex) 여러 고양이는 별개의 인스턴스로 분리
+- pose Estimation은 사람의 2D/3D 관절 위치를 추정하는 작업으로 특정 포즈를 인식하여 움직임을 분석
+- IMAGE Generation은 주어진 입력으로부터 새로운 이미지를 생성하거나, 기존 이미지를 변형하는 작업
+
+2. 심층 신경망(DNN) vs 합성곱 신경망(CNN)
+
+- CNN은 합성곱연산으로 이루어진 Neural network를 의미
+- 기존 DNN의 문제점은 데이터의 형상을 무시한다는 점
+- 가로 세로 채널로 구성된 3차원 데이터인 이미지가 레이어에 입력될 때 1차원 데이터로 변형되면서 공간 정보 손실
+- 공간적으로 가까운 픽셀은 값이 비슷하거나, 거리가 먼 픽셀끼리는 별 연관이 없는 등, rgb의 각 낼어는 서로 밀접하게 관련이 있는데, 이러한 3차원 속 의미를 갖는 본직적인 패턴이 무시됨
+- 기존 DNN은 1차원 형태의 데이터 사용
+- 이미지 데이터는 2차원으로 1차원 데이터로 표현될 경우 인접 영역 상관관계)가 손실됨
+- CNN으로 DNN의 한계해결
+
+3. CNN 순서
+1) Feature Extraction
+convolution & pooling & flatten은 이미지의 공간적 상관관계를 유지하면 일렬로 배열
+Featuer Maps는 Filter를 이용하여 이미지 안에서 추출한 특성
+Convolution & pooling은 Feature Extraction의 용도로 filter(kernal)를 적용하여 이미지에서 feature extraction 
+2) Classification
+Fully Connected Layer 동작
+3) 활성화 함수 적용
+
+softmax를 적용하여 클래스에 속할 확률로 변경
+CNN 이미지 합성곱을 통해 Feature Map 생성
+(필터 개수 = feature map)
+stride 는 필터가 이동하는 보폭의 크기
+padding은 이미지 주변을 특정 값으로 채우는 것
+pooling은 공간을 줄이는 연산으로 필터 크기를 바탕으로 최대값이나 평균값을 취함
+convolution layer : 지역 정보 추출
+pooling layer : 지역 정보 중 두드러진 정보 추출
+pooling은 feature map의 모든 데이터가 필요하지 않기 때문에 사용
+적당량의 데이터만 있어도 됨
+
+장점: 
+1.파라미터를 줄이기 때문에 overfitting을 줄임
+2. computation이 줄어들어 속도 증가
+
+특징: 	1. 학습되어야 할 파라미터가 없음
+	2. 채널 수는 유지
+	3. Feature map에 변화가 있어도 변화가 작음
+	4. flatten은 정보를 추출하고 feature map 크기 압축
+	5. 최종적인 feature map은 faltten 과정을 통해 1차원 데이터로 처리
+	6. fully-connected layer은 flatten layer의 출력을 넘겨 받아 신경망을 통해 이미	지 분류
+	7. 출력 노드 활성화 함수로 softmax를 주로 사용
+
+
+
+
+### 이다은
+##### 총 정리
+
+1. 인공지능 - 머신러닝, 딥러닝 등의 기술을 기반으로
+인공지능 발전 요인 
+1). 빅데이터 
+2). 클라우드 컴퓨팅 
+3). 딥러닝 알고리즘
+	- 딥러닝은 머신러닝의 일부
+	- 머신러닝 = 기계 학습
+	: 어떤 규칙을 컴퓨터가 직접 찾을 수 있도록 학습시키는 것
+	- 주어진 데이터 속에서 규칙적인 패턴을 발견하여 학습 및 패턴을 바탕으로 예측
+2. 머신러닝 
+1) 머신러닝의 유형: 지도학습, 비지도학습, 강화학습
+2) 지도학습: 분류, 예측에 활용 / y=x 알려줌
+	- 분류: 지도 학습 결과가 이산형, 범주형인 변수
+	- 회귀: 지도 학습 결과가 연속형인 변수
+3) 비지도학습: 군집 및 연관규칙에 활용 / y = ?
+	- 군집: 데이터를 비슷한 것 끼리 모으는 분석 방법
+4) 강화학습: 보상 받으며 학습 / 게임 등에 이용될 수 있음
+	- 게임에서 이기면 보상이 주어지는 것과 같은 원리
+5) 머신러닝의 목적: 주어진 데이터의 패턴을 잘 표현할 수 있는 모형 찾기
+	- 오차를 최소화할 수 있는 모형을 만들어야 함
+	- y = Wx + b 에서 오차가 최소화되는 W, b 를 찾아내는 것
+	- 경사하강법: 손실함수 MSE 사용
+6) MSE 값이 더 작을수록 좋은 모형 > MSE를 최소화할 수 있는 파라미터를 찾아야 함 > 미분을 통해 찾을 수 있음
+	- 미분 시 기울기 양수면 x값 감소, 음수면 증가
+	- 가중치 갱신 방법을 통해 학습
+	- gradient가 0일 때 학습 중단
+
+*학습률이 작으면 반복값이 많아 시간이 오래 걸리지만 local minima에 수렴 가능*
+*학습률이 크면 시간은 적게 걸리나 값이 발산할 수 있음*
+
+2.1 머신러닝 과정: 어떤 데이터를 통해 어떤 예측값을 결과로 만들어낼 것인지 이해 필요
+
+** Domain Understanding and Data Collection > Data Preprocessing > Modeling and Ensemble > Prediction > Evaluation > Deployment **
+1) STAGE 1 : Domain Understanding and Data Collection
+	데이터가 가지고 있는 특성을 파악하고 EDA를 통해 데이터 분석
+	- EDA: Exploratory Data Analysis
+
+2) STAGE 2 : Data Preprocessing
+	결측값, 이상치를 처리하고 Feature 만들어 사용 > 유의미한 Feature 가 제공될 때 	성능이 좋은 모델을 만들 수 있음
+	- Feature: 모델에 학습시킬 데이터의 특성을 알려주는 정보
+	- 데이터는 크게 범주형, 수치형으로 나뉘며 전처리를 하는 데이터는 수치형 데이터
+	- 학습 데이터를 7~80%, 검증 데이터를 2~30%로 사용하여 학습시킴
+
+
+	1. Data Cleansing : 노이즈 제거
+	2. Data Integration : 데이터 소스 병합
+	3. Feature Construction / Extraction : 원하는 Feature 추출
+	4. Feature Selection : 관련 있는 Feature만 선택
+	5. Scaling : 정규화, 변환 등 Scaling 진행
+	6. Sampling : 모델 학습 위한 Train, Val, Test set 샘플링 > 모델 학습 검증 후 	평가를 위한 초석 단계
+
+3) STAGE 3 : Modeling and Ensemble
+	정답이라고 가정한 데이터 값과 모델을 통해 예측한 값의 차이가 작아지도록 함
+	- Hyper-parameter: 모델 생성 시 사용자가 직접 설정하는 변수
+	- Parameter: 모델 내부에서 결정되는 변수
+	- 학습이 완료된 모델의 일반화 성능을 최고 수준으로 발휘하도록 하는 		Hyper-parameter 의 최적값 탐색
+
+4) STAGE 4 : Prediction
+	학습을 진행한 모델로 새로운 데이터의 라벨을 예측하는 단계
+
+5) STAGE 5 : Evaluation
+	정답과 모델을 통해 예측한 값의 오차 정도를 통해 잘 학습한 모델인지 평가
+	- 과대적합: 모델이 복잡해서 학습 데이터는 예측하지만 검증 및 평가 데이터는 잘 	예측하지 못함
+	- 과소적합: 모델이 너무 단순해서 내제된 구조를 학습하지 못함
+	model.score
+
+6) STAGE 6 : Deployment
+
+
+--- 머신러닝의 한계 ---
+1. 과적합, 과도한 일반화로 성능 향상에 한계
+2. 정답이 있는 대량의 데이터 필요
+3. 도출 결과의 설명력 부족
+4. 기존 학습 모델의 재사용 어려움
+
+
+--- 딥러닝 ---
+퍼셉트론: 인간의 뉴런을 모방한 구조
+- 입력값과 가중치가 선형 결합되어 있음
+퍼셉트론 문제점: 선형 분류인 AND와 OR 연산은 수행하나, 비선형 분류인 XOR 연산은 수행 불가능
+- XOR 연산자는 두 값이 다르면 1을 반환
+다층 퍼셉트론 : MLP
+인공 신경망의 초기 모델로, 선형 모델인 퍼셉트론을 보완한 모델
+- 입력층: input 데이터
+- 은닉층: 여러 퍼셉트론의 조합 (비선형 활성화 함수 사용)
+- 출력층: 모델의 최종 결과값
+인공신경망 : ANN
+다양한 활성화 함수를 적용한 다층 퍼셉트론
+- 활성화 함수: 입력값을 일정 기준에 따라 변화시켜 출력하는 비선형 함수 > Sigmoid, ReLU, Softmax
+심층신경망 : DNN
+- 순전파: In->Output 방향으로 출력값 계산 > 실측값과 예측값의 차이인 오차 계산
+- 역전파: Out->Input 방향으로 가중치 갱신 > 딥러닝에서 학습이 이루어짐
+가중치 갱신 방법으로 머신러닝과 같이 경사 하강법 사용
+
+### 이승호
+##### 총 정리
+
+1. Colab 플랫폼
+
+- 브라우저 내에서 Python 스크립트 작성 or 실행 가능
+- 구성이 필요하지 않음
+- 무료 GPU
+
+변수명 명확하게 (임수 변수 사용 지양)
+
+데이터 불러오기 -> pandas
+import pandas as pd
+변수명 = pd_read_cvs(‘데이터의 경로’)
+
+주요함수
+- .head() : 위에서 몇개 보기(default 5개)
+- .len() : 데이터의 크기
+- 데이터의 프레임, 데이터프레임 컬러, hist() : 데이터 시각화
+- .unique() : 중복된 값 제거
+- .colums : 컬러 확인
+- .groubby(컬럼) : 그룹핑
+- .describe() : 통계적으로 해당 데이터 확인 (ex) min, max, avg 
+- .sort_values().head() : (default 오름차순) ascending = False -> 내림차순
+- .sample (숫자) : 숫자 만큼 샘플 추출
+- .sample (숫자, weight = “컬럼”) : 컬럼이 높을수록 샘플링 될 확률이 높음
+
+
+2, Visualiztion 시각화
+“```
+import matplotlib,pyplot as plt
+import seaborn as 눈
+```”
+주요 함수
+- plt.figure(figsize = (x, y)) : figure 크기 설정
+- sns.barplot( x = “x축”, y = “y축”, data = 해당 데이터, pallete = “팔레트 인자”) -> seaborn 으로 수평 막대 그리기
+- plt.title(“제목”, fontsize = 사이즈) : 제목 설정
+- plt.xlabel(“ x라벨 ”, fontsize = 사이즈) : x축 설정
+- plt.ylabel(“ y라벨 ”, fontsize = 사이즈) : y축 설정
+- plt.show() : 그래프 표시
+
+
+3. 인공 지능 
+- 인간이 가지고 있는 지적 능력을 컴퓨터에 구현하는 기술
+
+인공지능의 발전 요인
+- 빅데이터
+- 클라우드 컴퓨팅
+- 딥러닝 알고리즘
+
+
+
+4, 머신러닝
+- 컴퓨터가 학습 데이터를 통해 스스로 규칙을 찾을 수 있도록 하는 것
+
+머신러닝의 목적
+- 주어진 데이터의 패턴을 잘 표현 할 수 있는 모형을 찾는 것
+
+1). 손실함수
+MSE를 최소화 할 수 있는 파라미터 찾기
+
+2) 가중치 개선
+순서 
+임의의 파라미터 생성 -> 미분하여 변화율 구함 -> 변화율 > 0이면 파라미터 낮추고, 변화율 < 0 이면 파라미터 올림
+
+
+5. 딥러닝
+
+1) 뉴런
+- 인간의 뉴런의 감각을 통해 얻은 신호처리
+- 뉴런은 신호를 취합하여 일정 값 이상이면 다음 뉴런으로 신호 전달
+
+2) 퍼셉트론
+- 인간의 뉴런을 포함
+- 입력값과 가중치가 선형 결합
+
+3) 다중 퍼셉트론(MLP)
+
+- 입력층 : input 데이터
+- 은닉층 : 여러 퍼셉트론의 조합 ( 비선형 활성화 함수 사용 )
+- 출력층 : 모델의 최종 결과 값
+
+4) 심층 신경망(DNN)
+- Forward Propagation : Input -> Output (오차 계산)
+- Backward Propagation: Output -> Input (딥러닝 학습)
