@@ -1,0 +1,319 @@
+### 허진수
+
+1. CNN 발전과정
+
+1) LeNet
+최초의 CNN 알고리즘
+
+-  Local Receptive Fields
+filter 가 전체 이미지를 돌아다니면서 만나게 되는 Filter size 와 동일한 크기의 영역들
+기존 MLP에서 담아낼 수 없던 공간 정보를 반영
+
+- Shared Weights
+전체 Feature Map이 같은 Filter의 파라미터를 공유하는 것
+input을 1차원으로 바라보던 관점에서 2차원으로 확장하였고, Parameter Sharing을 통해 입력 픽셀 수가 증가해도 파라미터 수가 변하지 않음
+
+- Sub-sampling
+현대의 pooling 층으로 LeNet 에서는 Averaging-pooling이 사용됨
+
+
+1).1 구조
+Receptive Field를 통해 이미지 데이터의 공간 정보를 활용할 수 있어 좋은 성능을 보임
+Receptive Field란 Convolution을 거친 결과값이 원본 이미지에서 담당하는 범위
+
+층이 깊어질수록 더  넓은 Receptive Field를 가짐
+
+2) AlexNet;
+
+2012 년 1등을 차지한 모델
+대용량의 CNN 모델을 학습
+최종적으로 1000개의 클래스
+
+- 성능 향상과 학습시간 감소를 위한 기술 사용
+Multiple Gpu, ReLu, Local Response Noramalization, Overpooling
+
+- Overfitting을 방지하기 위한 기술들을 사용
+Data Augmentation, Dropout
+
+- 두개의 Gpu를 사용하여 연산을 진행
+
+- overlapping pooling 시 pooling window 크기 3 > stride 1 
+더 많은 부분을 고려하기 때문에 과적합을 줄일 수 있음
+
+- ReLU 함수는 값이 비약적으로 상승할 수 있기 때문에 규제방안 필요 LRN(Local Response Normalization)을 통해 값을 어느 정도 일반화
+Batch Normalization 등장으로 더 이상 안 쓰임
+
+2).1 Data Augmentation - Random Cropping
+
+이미지를 랜덤하게 자르는 것 (256 -> 224 로 조정)
+데이터수 (256 - 224) * (256 - 224)
+
+2).2 Data Augmentation - Horizontal Flip
+좌우반전
+데이터 수: (256 - 224) * (256 - 224) * 2 -> 이미지 1장당 2048개 생성
+
+
+3) VGGNet
+
+파라미터 수를 줄이면서 Layer 수를 늘려 학습속도 증가
+
+규칙
+1. 2x2 사이즈의 stride = 2 인 pooling을 사용하여 Feature Map Size를 반만큼 줄임
+2. 3x3 사이즈의 필터를 이용하여 이전보다 두배의 Feature Map을 만듦
+3. 3x3  사이즈의 필터를 이용하여 똑같은 feature map을 만듦 (2번 or 3번)
+
+3x3 필터를 2번 중첩하는게 5x5필터를 1번 사용하는 것보다 Activation Function을 더 많이 사용할 수 있어 더 많은 비선형성을 얻을 수 있음 파라미터의 수도 줄어드는 효과를 얻을 수 있음
+
+3 x 3 x 2 < 5 x 5
+
+3).1 3 x 3 필터사이즈가 유리함을 밝힘
+
+3).2 VGG 시사점
+- 네트워크 깊이가 깊어질수록 성능이 좋음
+- 만일, 학습 데이터가 더 충분하다면 더 깊어도 좋음
+- 하지만 무작정 늘리기만 하면 학습할 파라미터 수가 매우 많아져 Gradient Vanishing 문제 발생
+
+
+
+4) GoogleNet
+- 1등을 차지한 모델
+- 총 22개의 레이어로 구성되어 있으면 굉장히 길고 복잡한 구조를 가짐
+
+크게
+4).1 Pre-Layer
+일반적인 CNN 연산을 거치는 층
+
+4).2 Inception Module
+4가지 연산을 수행하고 연산 결과로 Featire Map을 쌓는 방식
+1x1 Filter로 공간적 정보를 담아내고
+3x3, 5x5 Filter는 추상적이고 퍼져 있는 정보를 보존하기 때문에 
+1x1 Conv를 연산해 전체 이미지 크기는 줄일 수 있음
+
+5x5x480으로 14 x 14 x 48을 만드는 것보다
+1x1x480, 5x5x16으로 14x 14x 48을 만드는 것이 훨씬 연산이 적게 들어간다.
+
+4).3 Global Average Pooling
+전층에서 산출된 Feature map들을 각각 평균 낸 것을 이어서 1차원 벡터를 만들어주는 것
+
+4).4 Auxilary Classifier
+
+가장 뒷 부분에 classifier 하나가 존재하면 입력과 가까운 앞쪽에는 Gradient 가 잘 전파되지 않을 수 있음
+네트워크의 중간 부분, 앞 부분에 추가로 softmax classifier를 붙여주어 Gradient Vanishing 문제를 완화
+Auxiliary Classifier에서 계산된 에러 값들은 0.3의 가중치와 곱해져 최종 에러 값에 더해짐
+inference 시에는 Auxiliary Classifier를 사용하지 않고 마지막 부분의 softmax만 사용
+
+
+
+5) ResNet
+최근까지도 딥러닝의 기본 구조로 많이 사용됨
+
+네트워크를 일정 수준 이상 깊이가 되면 성능이 낮아지는데 Residual Block을 사용하여 Gradinent Vanishing 문제를 해결
+
+3x3 conv가 반복된다는 점에서 VGG와 유사한 구조를 가지고 있음
+
+Batch Normaliation을 Residual Block 에 사용
+보통 CONV-BN - RELU 순으로 사용
+
+
+
+
+2. 전이학습
+
+- 의미: 한 분야의 문제 해결을 위해 얻은 지식/정보를 다른 문제 해결에 사용
+딥러닝 분야의 전이학습은 하나의 작업을 위해 학습된 신경망 모델을 유사한 다른 작업에 적용시키는 것을 의미
+
+
+
+3. 최신 모델
+
+1) Transformer 기반 모델
+
+
+2) MLLM 기반 모델
+대표적으로 GPT가잇음
+
+
+
+### 이다은 
+
+#### 3차시
+ 
+1. 심층신경망
+sigmoid 함수값은 최대1, 최소0의 값
+층을 거칠수록 0으로 수렴
+문제점
+- 역전파 중에 기울기가 0에 가까워지는 Vanishing Gradient 문제 > Gradient가 0에 가까워지면 학습이 이루어지지 않음
+- 함수의 중심값이 0이 아니라서 학습이 느려질 수 있음 : Not Zero-centered
+
+2. ReLU
+: 입력값이 음수면 0을, 양수면 입력값을 그대로 출력하는 활성화 함수
+- 미분값은 0 또는 1
+- 입력값이 음수인 경우 가중치 업데이트 안됨
+
+3. Softmax 활성화 함수
+: 심층신경망의 결과를 확률 벡터로 바꿔주는 역할
+- 다중 클래스 분류에서 사용
+- 모두 양수이며 합은 1
+
+4. 가중치 초기화 : Gredient Vanishing 문제 해결
+- 각 층의 출력값이 정규분포/균등분포를 따라야 빠르게 수렴할 수 있음
+- 편향 초기화 또한 중요 > 보통 0으로 초기화
+
+Xavier Initialization : sigmoid, tanh 함수를 위한 가중치 초기화
+He Initialization : ReLU 함수를 위한 가중치 초기화
+
+5. Batch & Epoch 
+- 데이터 셋을 작은 덩어리로 나눠서 처리하는 것이 효율적
+- 여러 번 Epoch 반복해야 경사하강법의 효과를 볼 수 있음
+
+
+#### 4차시
+
+1. CNN
+
+1) LeNet: Receptive Field 통해 이미지 데이터의 공간 정보 활용 가능
+- 층이 깊어질수록 더 넓은 Receptive Field
+AlexNet: 2012년 ILSVRC 에서 1등을 차지한 모델로, 대용량의 CNN 모델을 학습
+
+2) LRN: Local Response Normalization
+- ReLU 함수의 규제방안으로, 값을 어느 정도 일반화 가능
+- 현재 사용 X
+
+3) VGG
+GoogleNet, ResNet 모두 3x3 필터 사이즈가 유리함을 밝힘 
+: 파라미터가 먹고 층을 더 깊이 쌓을 수 있기 때문
+- 네트워크 깊이가 깊어질수록 성능 향상
+- 학습 데이터가 충분하다면 더 깊어져도 됨
+- Gradient vanishing 문제 유의 
+
+4) GoogleNet: Inception 모듈을 총 9개 쌓아 구성
+- 4가지 연산 수행, 연산 결과로 Feature Map 쌓음
+- 1x1 conv: 공간적인 정보는 보존하며 전체 이미지 크기는 줄임
+- Pooling: Feature Map들을 평균 낸 것을 이어 1차원 벡터 생성
+- 네트워크 중간, 앞 부분에 Softmax Classifier 붙여주어 Gradient vanishing 문제 완화
+ResNet: 3x3 conv 반복 - VGG와 유사한 구조
+- 레이어 개수를 많이 사용할수록 연산량과 파라미터 개수 커지지만 정확도 좋아짐
+
+2. 전이학습: 하나의 작업을 위해 학습된 신경망 모델을 유사한 다른 작업에 적용
+- 새로운 데이터 셋으로 학습 시 깊은 계층의 파라미터만 조정 가능
+
+3. 최신 모델 - Tranformer 기반 모델, MLLM 기반 모델
+
+
+### 심목영
+
+1. Batch & Epoch & Optimizer
+- Batch : 데이터 셋 내 데이터들을 작은 덩어리로 나눠 처리하는 것이 한꺼번에 하는 것보다 효율적 
+- Epoch : 전체 데이터 셋의 순전파/역전파를 완료한 횟수
+- Optimizer : 손실 함수의 최적점에 도달하게 하는 가중치와 편향을 찾는 작업. ex) Adam, SGD, GD, Adagrad
+
+2. Early Stopping: 과적합을 방지하기 위해 검증/평가 데이터 셋의 학습 곡선을 보며 모델의 학습을 조기중단
+3. Dropout: 연결선의 일부를 지워 과도한 미세한 계산을 피하는 정규화 방법
+
+4. 이미지 분야 과업
+- Image Classification : 주어진 이미지를 사전에 정의된 클래스 중 하나로 분류. 이미지의 주요 특징을 추출하고 이를 기반으로 클래스 결정
+- Object Detection & Localization : 객체의 존재 여부를 감지, 객체의 위치에 바운딩함.
+- Semantic Segmentation : 각 픽셀을 특정 클래스에 할당하는 작업. 객체를 구분하지 않고 같은 클래스의 모든 픽셀을 동일하게 처리.
+- Instance Segmentation : 같은 클래스 내에서도 개별 객체를 구분하여 각각의 객체를 인스턴스로 분리하는 작업.
+- Pose Estimation : 사람의 2D/3D 관절 위치를 추정하는 작업.
+- Image Generation : 새로운 이미지를 생성, 변형하는 작업.
+
+- 기존 DNN은 1차원 형태의 데이터를 사용하기에 공간적 상관관계가 상실되고 위치에 따른 특징의 불변성을 가지고 있다. -> 합성곱 신경망 사용
+
+- Feature Extraction -> Classification -> Probabilistic Distribution
+
+CNN 은 Wx+b 의 선형연산으로 볼 수 있음.
+Input data -> x         Bias -> b
+Filter -> W
+필터를 적용한 후 모든 원소에 편향을 더한다.
+
+5. Stride & Padding & Flatten
+- Stride : 필터가 이동한 Steop 크기. 학습속도와 Feature Map의 크기 결정
+- Padding : 이미지 주변을 특정 값으로 채워 가장자리 데이터의 영향력을 중앙부와 비슷하게 유지
+- Flatten : Convolution-Pooling 반복작업으로 두드러진 정보를 추출하고 Feature Map 크기 압축. 이 과정을 통해 Feature Map을 1차원 데이터로 취급가능.
+
+### 이승호 
+
+1. 심층 신경망 (Deep Neural Network)
+- 미분이 가능한 sigmoid 함수는 [0, 1] 사이의 값 출력
+- Logitic 함수가 불리기로 하며 선형인 Multi-perception에서 비선형 값을 얻기 위함
+
+sigmoid, tanh, Relu, softmax
+
+1) weight Initaliztion
+- xavier Initialization
+- He Initialization
+
+2) Batch & Epoch
+데이터 셋을 작은 덩어리로 나눠서 처리
+- Epoch : 전체 데이터 셋의 순전파 / 역전파를 한번 완료한 횟수를 의미
+
+Epoch 높으면 -> Overfiting 문제
+Epoch 낮으면 -> underfiting 문제
+
+Epoch를 나눠서 실행하는 횟수 = mini-batch의 개수
+
+
+3) Optimizaer
+손실함수의 최적점에 도달하게 하는 가중치와 편향을 찾는 작업
+
+- 다양한 optimizer : 학습률과 기울기 결정 방법에 따라 나누어 짐
+Adam Optimizer 스텝 방향을 조정했던 Momentum 과 스텝 사이즈를 조정했던 RMSprop 방식을 합쳐 업데이트
+
+4) overfitting & underfitting : 모델이 너무 단순하여 기본 패턴을 포착할 수 없을 때 발생
+- overfitting : 학습 데이터에 너무 잘 학습되서 기본 패턴 대신 노이즈에 맞추기 시작할 때 발생
+- Early Stopping : 검증 / 평가 데이터 셋의 학습 곡선을 보여 모델의 학습을 조기에 중단
+
+5) Dropout : 정규화 방법으로 연결선의 일부를 지워 과도하게 미세한 계산을 피하는 방법
+
+
+2. 합성곱 신경망 (Convolutional Neural Network)
+
+1) 이미지 데이터 셋
+- 이미지 넷
+- MNIST
+- CIFAR-10/100
+- MSCOCO
+
+2) 이미지 분야 과업
+- Image Classfication
+- Object Detection & Localization
+- Segmantic Segentation
+- Instance Segmentation
+- Pose Estimation
+
+3) 합성곱 신경망 탄생 배경
+
+- 시각 피질의 활성화 되는 특점 수용 영역들이 서로 겹쳐져서 전체 시야를 이룸
+
+심층 신경망 vs 합성곱 신경망
+심층 신경망 -> 1차원 데이터
+
+4) Wx + b 의 선형 연산
+w : 필터
+b : 편향
+
+데이터와 필터의 합성곱으로 Feature Map 생성
+
+5) pooling 
+- Feature map을 가로 세로 방향의 공간을 줄이는 연산
+- 필터 크기를 바탕으로 최대값이나 평균값을 취함
+
+- 효과 : overfitting 억제, computation 낮춰서 -> 하드웨어 리소스 절약, 속도 올라감
+
+6) flatten
+- 과정을 통해 1차원 데이터로 취급 가능
+
+7) Fully - connected Layer
+- Flatten Layer의 출력을 넘겨 받아 신경망을 통해 이미지 분류
+
+3. CNN 발전 과정
+1) Lenet
+2) ILSVRC
+- AlexNet
+- VGGNET
+- GoogleNet
+
+4. 전이학습
+- 한분야의 문제 해결을 위해 얻은 지식/정보를 다른 문제 해결에 사용
+- 하나의 작업을 위해 학습된 신경망 모델을 유사한 다른 작업에 적용
