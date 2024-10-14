@@ -1,0 +1,259 @@
+### 허진수
+
+1. 시작
+`import torchvision.datasets as datasets` # 여러 가지 유명한 데이터셋을 쉽게 불러올 수 있도록 도와주는 torchvision의 데이터셋 라이브러리
+`import torchvision.transforms as transforms` # 데이터 전처리 및 변환을 도와주는 torchvision의 변환 라이브러리
+```
+import numpy as np
+import matplotlob.pyplot as plt
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+```
+
+2 복습
+1). dim, shape, size
+
+t.dim() # t 차원 출력
+t.shape() # t의 형태 출력
+t.size() t의 크기를 출력 
+
+2). Aggregation : 특정한 차원을 기준으로 연산 수행
+
+t.mean()
+t.mean(dim = 0)
+t.mean(dim = 1)
+t.mean(dim = -1)
+
+max: 최댓값
+argmax: 최대값의 인덱스
+t.max(dim = 0) # max와 argmax 두개의 값 반환
+
+3). view : 텐서의 데이터를 바꾸지 않고 형태를 바꿔주는 것
+
+ft.view([-1, 3])
+
+4). unsqueeze : 텐서의 새로운 차원 추가
+차원 1추가
+
+ft.unsqueeze(0) -> [1, 3]
+ft.unsqueeze(1) -> [3, 1]
+
+5). scatter : 주로 one-hot encoding을 위해 사용
+lt = torch.LongTensor([[0], [1], [2], [0]
+one_hot = torch.zeros(4, 3)
+one_hot.scatter_(1, lt, 1)
+[1, 0] -> 1
+[2, 1] -> 1
+[3, 2] -> 1
+[4, 0] -> 1
+
+6). casting : 데이터 타입 변경연산
+ex )lt = torch.LongTensor([1,2,3])
+lt.float()
+bt = torch.ByteTensor([True, False, False, True])
+
+bt.long()
+bt.float()
+
+7). Concatenation : 여러개의 텐서를 특정 차원을 따라 하나의 텐서로 합치는 연산
+
+x = torch.FloatTensor([1, 2], [3, 4])
+y = torch.FloatTensor([5,6] , [7,8])
+
+torch.cat([x,y], dim = 0) 행 기준
+torch.cat([x,y], dim = 1) 열 기준
+
+8). stacking : 여러 텐서를 새로운 차원을 추가하면서 하나의 텐서로 만드는 연산
+
+x = torch.FloatTensor([1, 4])
+y = torch.FloatTensor([2, 5])
+z = torch.FloatTensor([3, 6])
+
+torch.stack([x,y,z])
+torch.stack([x,y,z], dim = 1)
+
+torch.cat([x.unsqueeze(0), y.unsqueeze(0), z.unsqueeze(0)], dim = 0)
+
+9). Ones and Zeros Like: 모든 값을 1 or 0 으로 채운 새로운 텐서를 생성하는 연산
+
+x = torch.FloatTensor([[0,1,2],[2,1,0])
+
+torch.ones_like(x)
+torch.zeros_like(x)
+
+
+10). in-place operation: 텐서의 값을 수정한 결과를 새로운 메모리 공간에 저장하지 않고 바로 반영하는 연산, 연산자 뒤에 _가 붙음
+
+x.mul(2)
+x.mul_(2)
+
+11). Autograd: 자동 미분을 수행하고 텐서의 연산 기록을 추적하고 역전파시 각 연산에 대한 미분 자동으로 계산 파라미터의 기울기를 손쉽게 구할수 있음
+
+if torch.cuda.is_available():
+       Device = torch.device('cude')
+else
+       Device = torch.device('cpu')
+
+
+
+# 추천 시스템 분류
+1. Collavorative Filtering(CF)
+
+특정 사용자가 평가하지 않은 아이템의 평가를 예측할 때 해당 아이템에 대한 다른 사용자들의 평가를 이용
+(다른 사용자는 비슷한 유형의 사람들)
+
+1) Memory-based method 
+neighborhood models로 사용자가 이전에 평가한 데이터를 사용하여, 유사한 user나 유사한  item을 찾아서 추천
+행렬 형태로 저장된 평가 데이터 사용
+
+2) Model-based method
+과거의 평가 데이터를 학습하여 예측할 수있는 모델 학습
+학습된 모델은 새로운 데이터가 주어졌을 때 학습한 내용을 바탕으로 예측 수
+
+
+2. Content-based Recommender
+
+- 핵심 아이디어: 사용자는 과거에 자신이 선택한 아이템들과 비슷한 아이템들을 좋아할 가능성이 높다.
+- 특정아이템의 특징을 기반으로 추천
+추천 대상이 되는 타켓 사용자에만 초점을 둔다.
+
+1) 방법
+- 유저 프로필 파악 : 이전 시청 기록을 기반으로 유저 취향 파악
+ex) 영화를 보고 난 후 영화의 장르와 영화의 감독, 출연 배우 정보가 사용자의 프로필에 반영
+
+- 유사 아이템 선택
+
+2) 알고리즘 예시
+- TF-IDF를 사용하여 아이템에 대한 속성 벡터 구하기
+아이템에 대한 설명 데이터가 존재한다면 텍스트 데이터를 벡터로 변환
+
+- 코사인 유사도를 통해서 가장 유사한 아이템 찾기
+
+3. Knowledge-based Recommender
+- 지식 기반 추천 시스템은 평가 데이터를 사용하지 않고 고객의 요구사항과 항목 설명간의 유사성을 바탕으로 추천 수행
+
+1)  명시적인 사용자 요구사항
+- 사용자가 제공하는 구체적인 요구사항을 바탕으로 추천
+
+2) 규칙 기반 추천
+- 연비가 높은 차를 선호한다고 했을 경우, 해당 규칙에 부합하는 아이템들을 추천
+
+3) 사용자 행동 이력이 필요하지 않음
+- KB 추천 시스템은 협업 필터링이나 컨텐츠 기반 필터링처럼 사용자 행동 데이터를 필요로 하지 않음
+
+4) 복잡한 제품과 서비스에 적합
+- 부동산, 자동차, 금융 상품처럼 다양한 특성과 옵션이 결합된 제품에 대해 매우 효과적
+- 구매 빈도가 낮고, 사용자마다 요구조건이 명확하기 때문에 KB 추천 시스템이 잘맞음
+
+
+# 추천시스템 평가방법
+
+1) 사용자 스터디
+- 피험자를 모집하여 추천 시스템과 상화작용하도록 요청하고, 이 과정에서 피드백 수집
+
+2) 온라인 평가
+- 실 사용자들이 실제 상업 시스템에서 추천 시스템과 상호작용하는 데이터를 활용
+- 편향을 줄일 수 있고 A/B 테스트를 통해 알고리즘 성능 비교
+- 대규모 사용자가 필요하기 때문에 초반에는 어려움
+
+3) 오프라인 평가
+- 모델 학습 후에 진행하는 평가하는 것을 오프라인 평가라고 함
+- 단점은 실제 사용자의 반응을 측정하지 못하며 데이터가 시간에 따라 변할 수 있어 미래에 적합할 않으
+
+
+
+### 이다은
+
+# 5차
+
+1. Tenser
+- torch.nn > 딥러닝 설계에 필요한 함수 모음
+- torch.tensor
+- 사칙연산, 벡터, 행렬(Matrix) 연산 가능
+- 다차원 tensor 생성 가능
+- FloatTenser > 1차원 유동 tenser
+- 하나의 텐서에 묶인 자료는 1차원
+
+- Mul: 요소별 곱셈 수행
+- Matmul : 행렬 곱셈 수행
+- Broadcasting: 다양한 크기의 배열 간 연산
+- Agrregation: 텐서의 여러 요소에 연산 수행하여 요약 값 얻는 과정
+- Squeeze / Unsqueeze: Un은 tensor에 값 추가
+- Scatter: 값 분산 연산
+- Casting: 데이터 타입 변경
+
+- 데이터 증강: transforms.Compose
+- 데이터 로더: torch.utils.data
+- self.conv_block > self.fc_block
+- model.train: 모델을 학습 모드로 설정
+- optimizer: 초기화
+- step: 갱신
+
+- CIFAR-10 데이터셋으로 분류
+- 클래스별 정확도 출력 
+
+
+# 6차시
+
+1. 추천시스템: 정보 필터링 기술의 일종
+- 개인화된 경험 공유로 유저의 만족도 상승 및 매출 증대 기대 가능
+Collaborative Filtering(협업 필터링): 특정 사용자가 평가하지 않은 아이템 평가 시 해당 아이템에 대한 다른 사용자들의 평가를 이용
+- Memory-based method: 행렬 형태로 저장된 데이터 사용
+- Model-based method: 예측가능한 모델을 학습
+- user-based: row를 기준으로 사용자간의 유사성 평가
+- Item-based: column 을 기준으로 평가
+장점: 도메인에 의존하지 않고 사용 가능
+단점: cold start - 피드백 데이터 부족
+
+1) Content-based Recommender: 사용자는 과거에 자신이 선택한 아이템들과 비슷한 아이템을 좋아할 가능성이 높다.
+- 벡터로 변환하여 코사인 유사도가 높은 아이템 추천
+- 장점: cold-start problem 에서 사용가능
+- 단점: 다양성 보장이 어렵고 과거 이력이 부족하면 성능 보장이 어려움
+2) Knowledge-based Recommender: 고객의 요구 사항과 항목 설명 간의 유사성을 바탕으로 추천 수행
+1. 명시적인 사용자 요구사항
+2. 규칙 기반 추천
+3. 사용자 행동 이력 불필요
+4. 복잡한 제품과 서비스에 적합
+추천시스템에서 사용하는 데이터: 사용자 데이터, 아이템 데이터, 사용자-아이템 상호작용 데이터
+- 명시적 피드백: 사용자가 명시적으로 남긴 데이터 > 협업 필터링 
+- 암묵적 피드백: 사용자의 행동을 통해 수집된 데이터 > 협업 필터링
+
+추천 시스템 평가 방법: 사용자 스터디, 온라인 평가, 오프라인 평가
+
+
+### 심목영
+
+
+1. CNN 발전 과정
+- LeNet - 공간정보 반영(Receptive Fields를 통해), INPUT을 2차원으로 입력받기 가능, Averaging-pooling이 사용됨
+
+1). LeNet 세부과정
+- Convolutions - Input의 채널수와 크기 조정
+- Subsampling - Average Pooling 사용
+- Flatten - 하나의 1차원정보로 Output을 조정
+
+2). AlexNet - 대용량 CNN모델 학습, 성능 향상과 학습시간 감소 기술 사용, 과적합 방지 기술 적용, 두 개의 GPU 사용
+- Max Pooling은 Poolig window의 크기가 Stride와 같지만 Overlapping Pooling은 Stride보다 크기 때문에 과적합을 줄일 수 있음.
+
+3). VGGNet - 모델의 깊이가 성능에 미치는 차이를 확인, 파라미터 수를 줄이면서 layer 수를 늘려 학습속도 증가(3*3필터 사이즈)
+
+4). GoogleNet - Inception 구조, 22개의 레이어
+
+5). Pre-Layer -일반적인 연산을 거치는 층
+- Inception Module - 9개 쌓임. 4가지 연산을 수행하고 Feature Map을 쌓음. 3가지 필터를 사용함. 그 중 1*1필터는 연산량을 줄이고 공간적 정보를 담아냄. 3*3, 5*5 필터는 추상적이고 퍼져있는 정보 보존.
+- Global Averaging Pooling - 전 층에서 산출된 Feature Map을 각각 평균 낸 것을 이어 1차원벡터로 만들어줌. 파라미터와 가중치 필요 없음.
+- Auxiliary Classifier/Softmax Classifier - Gradient 전파
+
+6). ResNet - Residual Block을 통해 Gradient Vanishing문제 해결. 3*3 Conv가 반복. 레이어 개수가 많을수록 연산량이 늘지만 정확도가 증가함.
+
+
+2, 전이학습 - 하나의 작업을 위해 학습된 신경망 모델을 유사한 다른 작업에 적용시키는 것
+
+전략 1 : 아예 처음부터 학습
+전략 2 : 일부분의 Layer만 학습
+전략 3 : 마지막 예측 Layer만 새로 학습
+
+
+
