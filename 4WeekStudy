@@ -1,0 +1,297 @@
+# 미션 1 패션 스타일 이미지 분류
+### 미션 1-1  
+###  주어진 이미지 데이터의 파일 명은 아래와 같은 형식이다. “{W/T}_
+ {이미지ID}_{시대별}_{스타일별}_{성별}.jpg”이에 기반하여 “이미지ID” 
+수 기준으로 “성별 & 스타일” 통계치를 아래 표 형식으로 기입한다.
+
+#```
+image_folder_path = '/content/drive/MyDrive/Dataset/training_image'  # 이미지 폴더의 경로로 변경하세요.
+image_files = os.listdir(image_folder_path)
+
+imageName = {}
+# imgName 카운트 딕셔너리 생성
+for img_name in image_files:
+  # 파일 이름을 '_'로 분리
+  file_name_without_ext = os.path.splitext(img_name)[0]
+  split_name = file_name_without_ext.split('_')
+  # 필요한 부분인 4번째와 5번째 요소를 추출하여 결합
+  key_name = '_'.join(split_name[-2:])
+  if key_name not in imageName:
+      imageName[key_name] = 1
+  else:
+      imageName[key_name] += 1
+
+for key, value in imageName.items():
+    print(f"{key}: {value}\n")
+```"
+
+
+### 미션 1-2   
+### ResNet-18를 활용하여 “성별 & 스타일” 단위로 클래스 분류를 수행하고 Validation 데이터에 대한 정확도를 제시한다
+
+# 1 데이터 셋 클래스 만들기 
+#```
+from abc import ABC
+import os
+import json
+from PIL import Image
+import torch
+from torch.utils.data import Dataset, DataLoader
+from torchvision import transforms
+
+# Custom dataset class
+class CustomImageDataset(Dataset):
+    def __init__(self, image_dir, label_dir, transform=None):
+        """
+        이미지 디렉토리와 JSON 형식의 레이블 디렉토리를 받아 데이터셋을 생성하는 클래스.
+
+        Args:
+            image_dir (str): 이미지가 저장된 디렉토리 경로
+            label_dir (str): 레이블이 포함된 JSON 파일이 저장된 디렉토리 경로
+            transform (callable, optional): 입력 이미지에 적용할 변환기 (default: None)
+        """
+        self.image_dir = image_dir
+        self.transform = transform
+
+        # 레이블 파일 읽기 (디렉토리 내 모든 JSON 파일 읽기)
+        self.labels = {}
+        for label_file in os.listdir(label_dir):
+            if label_file.endswith('.json'):
+                with open(os.path.join(label_dir, label_file), 'r') as f:
+                    label_data = json.load(f)
+                    # JSON 파일에서 마지막 "_"와 그 뒤의 숫자를 제거한 후 매칭
+                    base_label_name = "_".join(label_file.split('_')[:-1]) + ".jpg"
+                    self.labels[base_label_name] = label_data
+
+        # 이미지 파일 목록 가져오기
+        all_image_files = set(os.listdir(self.image_dir))
+
+        # 이미지와 레이블의 교집합 찾기 (이미지 파일 이름 기준으로)
+        self.image_names = [img_name for img_name in all_image_files if img_name in self.labels]
+
+        # imageName = {}
+        # # imgName 카운트 딕셔너리 생성
+        # for img_name in self.image_names:
+        # # 파일 이름을 '_'로 분리
+        #   file_name_without_ext = os.path.splitext(img_name)[0]
+        #   split_name = file_name_without_ext.split('_')
+        #   # 필요한 부분인 4번째와 5번째 요소를 추출하여 결합 (popart_W)
+        #   key_name = '_'.join(split_name[-2:])
+        #   if key_name not in imageName:
+        #     imageName[key_name] = 1
+        #   else:
+        #     imageName[key_name] += 1
+
+        # num = 0
+        # for key, value in imageName.items():
+        #   print(f"\'{key}\': {num},")
+        #   num = num + 1
+
+        # 교집합인 파일 출력
+        # print(f"이미지와 레이블의 교집합에 해당하는 파일들: {sorted(self.image_names)}")
+
+    def __len__(self):
+        """데이터셋의 총 이미지 수 반환"""
+        return len(self.image_names)
+
+    def __getitem__(self, idx):
+        """
+        주어진 인덱스(idx)에 해당하는 이미지와 레이블을 반환.
+
+        Args:
+            idx (int): 인덱스 번호
+
+        Returns:
+            image (Tensor): 전처리된 이미지 텐서
+            label (Tensor): 해당 이미지의 레이블
+        """
+        # 이미지 파일 경로 설정 및 이미지 로드
+        img_name = os.path.join(self.image_dir, self.image_names[idx])
+        image = Image.open(img_name).convert("RGB")  # 이미지 열기 및 RGB로 변환
+
+        # 파일 이름에서 4번째 요소를 스타일로 사용
+        ad = os.path.splitext(self.image_names[idx])[0]
+        name_parts = ad.split('_')
+        mw_style = name_parts[3] + '_' + name_parts[4]
+
+        # 레이블을 인덱스로 변환 (class_map 사용)
+        class_map = {
+            'minimal_W': 0,
+            'bold_M': 1,
+            'hippie_M': 2,
+            'feminine_W': 3,
+            'mods_M': 4,
+            'hiphop_M': 5,
+            'normcore_M': 6,
+            'classic_W': 7,
+            'lingerie_W': 8,
+            'cityglam_W': 9,
+            'sportivecasual_W': 10,
+            'oriental_W': 11,
+            'normcore_W': 12,
+            'genderless_W': 13,
+            'metrosexual_M': 14,
+            'kitsch_W': 15,
+            'hiphop_W': 16,
+            'sportivecasual_M': 17,
+            'punk_W': 18,
+            'ivy_M': 19,
+            'bodyconscious_W': 20,
+            'military_W': 21,
+            'ecology_W': 22,
+            'powersuit_W': 23,
+            'hippie_W': 24,
+            'popart_W': 25,
+            'space_W': 26,
+            'athleisure_W': 27,
+            'grunge_W': 28,
+            'disco_W': 29,
+            'lounge_W': 30
+        }
+
+        # 문자열 레이블을 인덱스로 변환
+        label = class_map.get(mw_style)  # 정의되지 않은 스타일은 -1로 설정
+
+        # 이미지를 텐서로 변환
+        if self.transform:
+            image = self.transform(image)
+
+        # 레이블을 텐서로 변환 (정수형 레이블이므로 long tensor로 변환)
+        label = torch.tensor(label, dtype=torch.long)
+
+        return image, label
+```#
+
+#2 데이터 전처리 설정 및 데이터셋 생성
+#```
+import os
+import json
+from PIL import Image
+import torch
+from torch.utils.data import Dataset, DataLoader
+from torchvision import transforms
+
+# 데이터 전처리(transform) 설정
+transform = transforms.Compose([
+    transforms.Resize(224),  # ResNet의 경우 224x224 크기 입력을 기대
+    transforms.ToTensor(),  # PIL 이미지를 PyTorch 텐서로 변환
+    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),  # ImageNet 평균 및 표준편차로 정규화
+])
+
+# 경로 설정 (압축 해제 경로 사용)
+extract_dir = '/content/dataset'
+
+train_image_dir = os.path.join(extract_dir, 'training_image')  # 학습 이미지 경로
+train_label_dir = os.path.join(extract_dir, 'training_label')  # 학습 레이블 디렉토리 경로
+
+validation_image_dir = os.path.join(extract_dir, 'validation_image')  # 검증 이미지 경로
+validation_label_dir = os.path.join(extract_dir, 'validation_label')  # 검증 레이블 디렉토리 경로
+
+# 학습 데이터셋 및 데이터 로더 생성
+train_dataset = CustomImageDataset(image_dir=train_image_dir, label_dir=train_label_dir, transform=transform)
+print(len(train_dataset))
+train_loader = DataLoader(train_dataset, batch_size=256, shuffle=True, num_workers=2)
+
+# 검증 데이터셋 및 데이터 로더 생성
+validation_dataset = CustomImageDataset(image_dir=validation_image_dir, label_dir=validation_label_dir, transform=transform)
+validation_loader = DataLoader(validation_dataset, batch_size=256, shuffle=False, num_workers=2)
+```#
+
+# 3 ResNet-18 모델 만들기 손실 함수 옵티마이저 정의
+
+#```
+import torch.nn as nn
+import torch.optim as optim
+from torchvision import models
+
+# ResNet-18 모델 불러오기 및 출력층 수정
+model = models.resnet18(pretrained=False)
+num_classes = 31  # 분류할 클래스 개수에 맞게 수정
+model.fc = nn.Linear(model.fc.in_features, num_classes)
+
+# GPU 사용 설정
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+model = model.to(device)
+
+# 손실 함수 및 옵티마이저 정의
+criterion = nn.CrossEntropyLoss()
+optimizer = optim.Adam(model.parameters(), lr=0.001)
+```#
+
+# 4 모델 함수 생성
+#```
+def train_model(model, train_loader, criterion, optimizer, device):
+    model.train()
+    running_loss = 0.0
+    total_correct = 0
+    total_samples = 0
+
+    for images, labels in train_loader:
+        images, labels = images.to(device), labels.to(device)
+
+        # 순전파
+        outputs = model(images)
+        loss = criterion(outputs, labels)
+
+        # 역전파 및 옵티마이저 스텝
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+
+        # 손실 및 정확도 계산
+        running_loss += loss.item() * images.size(0)
+        _, predicted = torch.max(outputs, 1)
+        total_correct += (predicted == labels).sum().item()
+        total_samples += labels.size(0)
+
+    epoch_loss = running_loss / total_samples
+    epoch_acc = total_correct / total_samples
+    return epoch_loss, epoch_acc
+
+def validate_model(model, validation_loader, criterion, device):
+    model.eval()
+    running_loss = 0.0
+    total_correct = 0
+    total_samples = 0
+
+    with torch.no_grad():
+        for images, labels in validation_loader:
+            images, labels = images.to(device), labels.to(device)
+
+            outputs = model(images)
+            loss = criterion(outputs, labels)
+
+            running_loss += loss.item() * images.size(0)
+            _, predicted = torch.max(outputs, 1)
+            total_correct += (predicted == labels).sum().item()
+            total_samples += labels.size(0)
+
+    epoch_loss = running_loss / total_samples
+    epoch_acc = total_correct / total_samples
+    return epoch_loss, epoch_acc
+```#
+
+#5 에포크 설정 및 학습
+#```
+num_epochs = 40
+best_acc = 0.0
+
+for epoch in range(num_epochs):
+    # 학습 단계
+    train_loss, train_acc = train_model(model, train_loader, criterion, optimizer, device)
+
+    # 검증 단계
+    val_loss, val_acc = validate_model(model, validation_loader, criterion, device)
+
+    # 결과 출력
+    print(f'Epoch {epoch+1}/{num_epochs}:')
+    print(f'Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.4f}')
+    print(f'Validation Loss: {val_loss:.4f}, Validation Acc: {val_acc:.4f}')
+
+    # 최적의 모델 저장
+    if val_acc > best_acc:
+        best_acc = val_acc
+        torch.save(model.state_dict(), '/content/drive/MyDrive/best_model.pth')  # 모델 가중치 저장
+
+print(f'Best Validation Accuracy: {best_acc:.4f}')
+```#
